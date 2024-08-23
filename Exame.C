@@ -2,18 +2,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <float.h>  // Adicione isto para DBL_MAX
+#include <windows.h> // Adicione isto para Sleep()
 
-#define MAX_PILOTOS 18 // Valor ficticio 
-#define MAX_VOLTAS 4 //Valor que define o vencedor da prova
+#define MAX_PILOTOS 18 // Valor fictício 
+#define MAX_VOLTAS 4   // Valor que define o vencedor da prova
 
-//Struct para adicionar as variaveis referente a cada piloto
+// Struct para adicionar as variáveis referente a cada piloto
 typedef struct {
-    char codigo[10], nome[50], tempo_total;
+    char codigo[10], nome[50];
     int voltas_completadas;
     double melhor_volta;
     double velocidade_media;
+    double tempo_total; // Corrigido o tipo da variável
 } Piloto;
-//Deine modelo de cabecalho do log
+
+// Define modelo de cabeçalho do log
 typedef struct {
     char hora[20];
     char codigo[10];
@@ -21,9 +25,8 @@ typedef struct {
     double tempo_volta;
     double velocidade_media_volta;
 } LogEntry;
-
-// Foi realizado a criacao de duas structs visando futuras ampliacoes de software, facilitando aumentar as variaveis por piloto porem sem 
-// necessariamente alterar o cabecalho.
+// Foi realizada a criação de duas structs visando futuras ampliações de software, facilitando aumentar as variáveis por piloto, porém sem
+// necessariamente alterar o cabeçalho.
 
 Piloto pilotos[MAX_PILOTOS];
 int piloto_count = 0;
@@ -32,27 +35,22 @@ LogEntry logs[MAX_VOLTAS * MAX_PILOTOS];
 int log_count = 0;
 
 void adicionar_piloto(const char* codigo, const char* nome) {
-    //Funcao realiza insercao dos pilotos ate o ultimo piloto inserido
+    // Função realiza inserção dos pilotos até o último piloto inserido
     for (int i = 0; i < piloto_count; i++) {
         if (strcmp(pilotos[i].codigo, codigo) == 0) {
             return;
         }
     }
 
-    strcpy(pilotos[piloto_count].codigo, codigo);   //Copia as variaveis lidas para as variaveis locais existentes por meio do srcpy
-    strcpy(pilotos[piloto_count].nome, nome);       //Copia as variaveis lidas para as variaveis locais existentes por meio do srcpy
+    strcpy(pilotos[piloto_count].codigo, codigo);
+    strcpy(pilotos[piloto_count].nome, nome);
     pilotos[piloto_count].voltas_completadas = 0;
-    pilotos[piloto_count].tempo_total = 0;
-    pilotos[piloto_count].melhor_volta = _DBL_MAX_;
+    pilotos[piloto_count].tempo_total = 0.0;
+    pilotos[piloto_count].melhor_volta = DBL_MAX; // Usar DBL_MAX corretamente
     pilotos[piloto_count].velocidade_media = 0;
     piloto_count++;
 }
 
-/*
-
-Caso seja necessario tambem e possivel procurar piloto por piloto para verificar se ele participou da corrida
-
-*/
 int encontrar_piloto_index(const char* codigo) {
     for (int i = 0; i < piloto_count; i++) {
         if (strcmp(pilotos[i].codigo, codigo) == 0) {
@@ -80,14 +78,11 @@ void processar_log_entry(const char* linha) {
         pilotos[piloto_index].melhor_volta = entry.tempo_volta;
     }
 
-    // Acumular dados para cálculo da velocidade média
     pilotos[piloto_index].velocidade_media = (pilotos[piloto_index].velocidade_media * (entry.numero_volta - 1) + entry.velocidade_media_volta) / entry.numero_volta;
 }
 
-void ler_arquivo(const char* nome_arquivo) {
-//Realizando leitura de um arquivo consierando que o log seja feito em .txt
-
-    FILE *file = fopen(nome_arquivo, "log_corrida.txt");
+/*void ler_arquivo(const char* nome_arquivo) {
+    FILE *file = fopen(nome_arquivo, "r");
     if (file == NULL) {
         perror("Erro ao abrir o arquivo");
         exit(EXIT_FAILURE);
@@ -101,9 +96,9 @@ void ler_arquivo(const char* nome_arquivo) {
     }
     fclose(file);
 }
+*/
 
 void calcular_resultados() {
-    // Encontrar o primeiro piloto a completar 4 voltas
     Piloto vencedor;
     for (int i = 0; i < piloto_count; i++) {
         if (pilotos[i].voltas_completadas >= 4) {
@@ -111,8 +106,7 @@ void calcular_resultados() {
             break;
         }
     }
-    // /t auxilia para que o print seja de forma tabulada, seja dos titulos para cabecalho ou de todas as variaveis utilizadas 
-    printf("Posição Chegada\t Código Piloto\t Nome Piloto\t Voltas Completadas\t Tempo Total\n");
+    printf("Tempo Total\t Posição Chegada\t Código Piloto\t Nome Piloto\t Voltas Completadas \n");
     for (int i = 0; i < piloto_count; i++) {
         printf("%d\t\t%s\t%s\t%d\t\t%.3lf\n", 
             (pilotos[i].voltas_completadas == 4 && pilotos[i].tempo_total < vencedor.tempo_total) ? 1 : 2,
@@ -122,52 +116,33 @@ void calcular_resultados() {
             pilotos[i].tempo_total);
     }
 }
-//faz tratamento das informacoes para verificar a melhor volta da corrida e o piloto que realizou o feito
+
 void exibir_melhor() {
-    double melhor_volta_corrida = _DBL_MAX_;
+    double melhor_volta_corrida = DBL_MAX;
     for (int i = 0; i < piloto_count; i++) {
         if (pilotos[i].melhor_volta < melhor_volta_corrida) {
             melhor_volta_corrida = pilotos[i].melhor_volta;
         }
     }
-    
     printf("Melhor volta da corrida: %.3lf\n", melhor_volta_corrida);
 }
 
 int main() {
+    //ler_arquivo("log.txt");
 
-    
-/*
-    Caso seja de opção atualiar algum piloto de forma manual separada do .txt tambem e possivel
+    int max_add = 0;
+    for (size_t i = 0; i < piloto_count; i++) {
+        adicionar_piloto("033", "Exemplo Nome"); // Substitua com os dados corretos
+        max_add++;
 
-    adicionar_piloto("038", "F.MASSA");
-    adicionar_piloto("033", "R.BARRICHELLO");
-    adicionar_piloto("002", "K.RAIKKONEN");
-    adicionar_piloto("023", "M.WEBBER");
-    adicionar_piloto("015", "F.ALONSO");
-    adicionar_piloto("011", "S.VETTEL");
-    */
-
-    // Lê o log
-    ler_arquivo("log.txt");
-    
-        for (size_t i = 0; i = piloto_count; i++)
-    {
-        max_add = 0; // Numero pilotos sendo lido no arquivo e adicionado ao programa
-
-        adicionar_piloto();
-        max_add i++
-
-        if (max_add == MAX_PILOTOS) // Numero lido deve ser igual ao numero maximo de pilotos da corrida
-        {
-           return;
+        if (max_add == MAX_PILOTOS) {
+            break;
         }
     }
 
-    // Calcula e exibe os resultados de maneira tabulada
     calcular_resultados();
-    delay(100);
+    Sleep(100);  // Use Sleep para esperar 100ms no Windows
     exibir_melhor(); 
     
-    return 0;
+    return 0;
 }
